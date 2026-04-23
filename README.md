@@ -148,3 +148,34 @@ KHÔNG nên:
 
   - Cho toàn bộ User-Agent vào cache key (vỡ cache).
   - Cho header Authorization vào cache key cho public content (dễ leak & nát cache). → Thường: request có auth thì không cache.
+---
+
+## 6. Signed URLs, OAI & OAC
+
+### 6.1. CloudFront Signed URLs / Signed Cookies
+
+Dùng khi cần kiểm soát truy cập nội dung private qua CloudFront:
+
+  - Backend kiểm tra quyền (login, đã mua…).
+  - Backend tạo Signed URL (có expiry, policy, signature).
+  - CloudFront validate signature:
+    - Hợp lệ → cho tải nội dung.
+    - Không hợp lệ/expired → 403.
+      
+### 6.2. OAI (Origin Access Identity)
+
+  - “User đặc biệt” của CloudFront để đọc S3 private.
+  - Dùng với S3:
+    - S3 bucket private.
+    - Bucket policy chỉ cho OAI s3:GetObject.
+    - User phải đi qua CloudFront (có thể kèm Signed URL).
+      
+### 6.3. OAC (Origin Access Control) – khuyến nghị mới
+
+  - Thay thế dần OAI cho S3.
+  - Ký request từ CloudFront → S3 bằng SigV4.
+  - Cho phép policy chặt chẽ hơn, là recommended cho triển khai mới.
+    
+Kết hợp chuẩn:
+
+  - S3 private + OAC/OAI + CloudFront + Signed URL ⇒ không thể tải trực tiếp từ S3, chỉ qua CloudFront & có quyền.
