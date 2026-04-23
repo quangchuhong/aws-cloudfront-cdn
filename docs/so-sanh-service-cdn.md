@@ -127,3 +127,57 @@ User
   - **Argo Smart Routing**: tối ưu đường truyền từ edge → origin
   - **Workers**: giống Lambda@Edge – chạy code (JS) tại edge
   - Tính năng bảo mật/cloud networking rất phong phú (WAF, Turnstile, Zero Trust…)
+---
+
+## 4. Akamai
+
+### 4.1. Kiến trúc tổng quan
+
+  - Một trong các CDN lớn & lâu đời nhất, rất nhiều PoP toàn cầu
+  - Mạnh về:
+    - Media delivery
+    - Enterprise security
+    - Các khách hàng enterprise: bank, OTT, e-commerce lớn…
+      
+```text
+User
+  |
+  |  www.bank.com (CNAME -> bank.akamai.net)
+  v
++----------------------------+
+|         Akamai Edge        |
+|  (WAF + DDoS + Cache)      |
++----------------------------+
+          |
+   Cache HIT ? -------------+
+          |                 |
+        No|                 |Yes
+          v                 v
++----------------------------+
+|          Origin            |
+| (DC của khách hàng / Cloud)|
++----------------------------+
+
+```
+
+### 4.2. Workflow tổng quan
+
+  1. DNS: www.site.com → CNAME xxx.akamai.net
+  2. User được route tới Akamai Edge gần nhất
+  3. Edge:
+    - Chạy Kona Site Defender / WAF / Bot Manager (tùy license)
+    - Kiểm tra cache theo cấu hình (Property Configuration)
+  4. Cache MISS:
+    - Proxy về origin (DC on-prem, cloud, hybrid)
+  5. Origin trả về:
+    - Akamai cache (nếu rule cho phép)
+    - Trả về cho user
+
+
+### 4.3. Điểm chính
+
+  - Cấu hình qua Property Manager (mạnh & chi tiết, nhưng phức tạp hơn)
+  - Thường được dùng với:
+    - Bank / Financial (tích hợp bảo mật, SLA cao)
+    - Media streaming lớn (HLS/DASH, live, VOD)
+  - Tích hợp với SIEM/SOC, logging rất chi tiết
