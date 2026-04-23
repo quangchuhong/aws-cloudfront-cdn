@@ -286,3 +286,90 @@ exports.handler = async (event, context, callback) => {
 };
 
 ```
+
+## 9. Kiến trúc mẫu: Báo điện tử global
+
+### 9.1. Phương án A – Origin tại VN (on‑prem DC Hà Nội)
+
+- Origin: web server / Nginx / LB on‑prem tại Hà Nội.
+- Origin type: Custom Origin trong CloudFront:
+  - origin.yournews.vn → IP public DC HN.
+  - Mở firewall cho CloudFront (hoặc Internet nếu không filter IP).
+    
+Workflow:
+```text
+User global
+  |
+  v
+CloudFront Edge (US/EU/APAC)
+  |
+  | Cache HIT -> trả luôn
+  | Cache MISS ->
+  v
+Internet -> DC Hà Nội (origin on-prem)
+
+```
+Thiết kế Behavior & Cache:
+
+  - /static/*, /assets/*: TTL 1–24h, no cookies.
+  - /images/*: TTL 1–7 ngày.
+  - * (HTML trang báo): TTL 60–120s, no cookies (nếu đa số không login).
+  - /api/*, /admin/*: TTL=0, forward cookies + headers.
+    
+Ưu:
+
+  - Giữ nguyên DC tại VN.
+  - User toàn cầu vẫn nhanh do CloudFront cache tại Edge gần họ.
+  - Đỡ tiêu băng thông quốc tế trực tiếp từ DC.
+
+### 9.2. Phương án B – Origin AWS tại Singapore
+
+  - S3: static frontend báo (index.html, CSS/JS/ảnh).
+  - ALB: backend API (nếu có).
+  - CloudFront đứng trước, origin ở ap-southeast-1.
+    
+Luồng:
+```text
+User global -> CloudFront Edge -> (cache) -> S3/ALB tại Singapore
+
+```
+
+Kết hợp Lambda@Edge:
+
+  - Rewrite URL báo (/tin-tuc/... → /tin-tuc/.../index.html).
+  - Thêm security headers (Viewer Response).
+
+---
+
+## 10. Chi phí CloudFront – cách nghĩ
+
+Thành phần chính:
+
+  1. Data Transfer Out (DTO) qua CloudFront:
+
+    - Tính theo TB/tháng, theo vùng (US/EU/APAC…).
+    - Thường rẻ hơn DTO trực tiếp từ EC2/S3.
+  
+  2. Requests:
+
+    - Tính /1M requests (GET/HEAD/POST…).
+    
+  3. Invalidations:
+
+    - Một số paths miễn phí/tháng.
+    - Vượt quota thì trả thêm.
+    
+  4. Lambda@Edge / CloudFront Functions:
+
+    - Tính theo số lần invoke + compute time (Lambda@Edge).
+    - Hoặc theo request (CloudFront Functions).
+  
+Tối ưu chi phí:
+
+  - Tối đa hóa cache hit:
+    - TTL cao cho static, TTL hợp lý cho HTML.
+    - Không đưa cookie/header thừa vào cache key.
+      
+  - Hạn chế invalidate toàn bộ /*:
+    - Dùng file versioning (app.abc123.js).
+    - TTL ngắn + invalidation chọn lọc.
