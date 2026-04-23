@@ -210,3 +210,55 @@ Kết hợp chuẩn:
   - Nếu origin dùng HTTPS:
     - Cấu hình min TLS (ví dụ TLSv1.2).
     - Verify cert và SNI theo origin domain name.
+---
+
+## 8. Lambda@Edge
+
+Lambda@Edge = chạy Lambda function tại Edge (gần user) để can thiệp:
+
+**4 điểm hook:**
+
+  1. Viewer Request – trước khi CloudFront xử lý request.
+  2. Origin Request – trước khi CloudFront gọi origin (cache miss).
+  3. Origin Response – khi vừa nhận response từ origin.
+  4. Viewer Response – ngay trước khi trả lại cho viewer.
+
+Use case:
+
+  - URL rewrite kiểu báo: /tin-tuc/abc → /tin-tuc/abc/index.html.
+  - Redirect logic (SEO, HTTPS, canonical).
+  - Thêm/bớt header (CSP, HSTS).
+  - Geo-based routing đơn giản.
+  - Chặn bot theo UA/headers/country.
+    
+Lưu ý:
+
+  - Lambda@Edge phải được deploy ở us-east-1 và publish = true.
+  - AWS tự replicate function tới tất cả Edge – bạn không tự “build” edge.
+    
+Ví dụ Lambda@Edge (Viewer Request) rewrite URL:
+```js
+'use strict';
+
+exports.handler = async (event, context, callback) => {
+    const request = event.Records[0].cf.request;
+    let uri = request.uri;
+
+    if (uri.match(/\.(html|css|js|png|jpe?g|gif|webp|ico|svg)$/i)) {
+        return callback(null, request);
+    }
+
+    if (uri === '/' || uri === '') {
+        request.uri = '/index.html';
+        return callback(null, request);
+    }
+
+    if (!uri.endsWith('/')) {
+        uri = uri + '/';
+    }
+    request.uri = uri + 'index.html';
+
+    return callback(null, request);
+};
+
+```
