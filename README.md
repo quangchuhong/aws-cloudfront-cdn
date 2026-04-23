@@ -179,3 +179,34 @@ Dùng khi cần kiểm soát truy cập nội dung private qua CloudFront:
 Kết hợp chuẩn:
 
   - S3 private + OAC/OAI + CloudFront + Signed URL ⇒ không thể tải trực tiếp từ S3, chỉ qua CloudFront & có quyền.
+
+---
+
+## 7. SSL/TLS & SNI trong CloudFront
+
+### 7.1. Viewer → CloudFront
+
+  - Domain: www.example.com → CNAME/ALIAS → CloudFront.
+  - Certificate:
+    - Default: *.cloudfront.net.
+    - Custom: ACM certificate cho www.example.com (ở us-east-1).
+      
+**Viewer Protocol Policy:**
+
+  - HTTP and HTTPS
+  - Redirect HTTP to HTTPS (khuyến nghị)
+  - HTTPS only
+    
+### 7.2. SNI (Server Name Indication)
+
+  - Giúp CloudFront phục vụ nhiều domain HTTPS trên cùng 1 IP.
+  - CloudFront sử dụng SNI-only (mặc định, nên dùng):
+    - Hầu hết browser/app hiện đại hỗ trợ.
+    - Không cần dedicated IP, chi phí rẻ.
+
+### 7.3. CloudFront → Origin
+
+  - Có thể HTTP only, HTTPS only, hoặc Match Viewer.
+  - Nếu origin dùng HTTPS:
+    - Cấu hình min TLS (ví dụ TLSv1.2).
+    - Verify cert và SNI theo origin domain name.
