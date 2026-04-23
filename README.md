@@ -70,3 +70,35 @@ DNS (Route 53 / DNS khác)
 |           Origin            |
 | (S3 / ALB / EC2 / on-prem)  |
 +-----------------------------+
+```
+
+Luồng:
+
+  1. User → DNS → CloudFront distribution.
+  2. CloudFront đưa user đến Edge gần nhất.
+  3. Edge check cache:
+    - HIT → trả về ngay.
+    - MISS → (có thể) check Regional Edge Cache → nếu vẫn MISS → gọi Origin.
+  4. Origin trả response → CloudFront cache lại theo TTL → trả cho user.
+
+---
+
+## 4. Behaviors & Routing theo path
+
+**Behavior** = rule áp dụng cho 1 nhóm đường dẫn (path pattern):
+
+Ví dụ:
+
+  - /static/* → Origin S3 (cache mạnh).
+  - /images/* → Origin S3 (TTL dài).
+  - /api/* → Origin ALB (hầu như không cache).
+  - * (Default) → Origin ALB/S3 (HTML trang báo, TTL trung bình).
+      
+Mỗi Behavior cấu hình:
+
+  - Path pattern
+  - Origin gắn kèm
+  - Cache Policy (TTL, cache key)
+  - Origin Request Policy (gửi gì xuống origin)
+  - Viewer Protocol Policy (HTTP/HTTPS)
+  - Allowed methods, compression, Lambda@Edge, v.v.
