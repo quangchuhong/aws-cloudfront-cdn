@@ -181,3 +181,102 @@ User
     - Bank / Financial (tích hợp bảo mật, SLA cao)
     - Media streaming lớn (HLS/DASH, live, VOD)
   - Tích hợp với SIEM/SOC, logging rất chi tiết
+
+---
+
+## 5. Nginx DIY CDN (tự xây CDN bằng Nginx)
+
+### 5.1. Kiến trúc tổng quan
+
+Ở đây không có “dịch vụ CDN managed”. Bạn tự triển khai:
+
+  - Nhiều node Nginx ở nhiều region / DC (PoP)
+  - DNS / Anycast để điều hướng user tới PoP gần nhất
+  - Nginx làm reverse proxy + cache đến origin trung tâm
+```text
+         Internet / Users Global
+     +-------------------------------+
+     |                               |
+User VN                        User US/EU
+  |                                  |
+  | www.example.com                  | www.example.com
+  v                                  v
++----------+                   +----------+
+|   DNS    | --- Geo/Latency-->|   DNS    |
++----+-----+                   +----+-----+
+     |                              |
+     v                              v
++--------------+              +--------------+
+| Nginx Edge   |              | Nginx Edge   |
+| Asia (SG/VN) |              | US/EU        |
++------+-------+              +------+-------+
+       \                             /
+        \                           /
+         v                         v
+              +----------------+
+              |    Origin      |
+              |  (Central DC)  |
+              +----------------+
+
+```
+
+### 5.2. Workflow
+
+  1. User request https://www.example.com/image.jpg
+  2. DNS (GeoDNS / latency-based) trả IP Nginx Edge gần nhất
+  3. Request tới Nginx Edge:
+    - Check cache (proxy_cache)
+    - Nếu HIT → trả file
+    - Nếu MISS → proxy tới origin (central DC/S3/cluster khác)
+  4. Origin trả về → Nginx Edge cache file → trả user
+
+### 5.3. Ví dụ config Nginx Edge (rút gọn)
+```text
+proxy_cache_path /var/cache/nginx levels=1:2 keys_zone=cdn_cache:100m
+                 max_size=20g inactive=1d use_temp_path=off;
+
+upstream origin_backend {
+    server origin.example.internal:80;
+}
+
+server {
+    listen 80;
+    server_name www.example.com;
+
+    location ~* \.(png|jpe?g|gif|css|js)$ {
+        proxy_pass http://origin_backend;
+
+        proxy_cache        cdn_cache;
+        proxy_cache_valid  200 301 302 1h;
+        proxy_cache_valid  404         5m;
+
+        add_header X-Cache $upstream_cache_status always;
+    }
+
+    location / {
+        proxy_pass http://origin_backend;
+        # có thể cache HTML ngắn hạn (micro-caching) tùy use case
+    }
+}
+
+```
+
+### 5.4. Đặc điểm
+
+Ưu:
+
+  - Quyền kiểm soát tuyệt đối (security, location, compliance, data residency)
+  - Phù hợp tổ chức lớn có DC nhiều nơi, đội ngũ ops mạnh
+    
+Nhược:
+
+  - Bạn phải lo mọi thứ:
+    - Mua/bố trí server global
+    - DNS / Anycast
+    - Monitoring, alerting, autoscaling, failover
+    - Bảo mật (WAF, DDoS…) – thường phải mua/thêm sản phẩm khác
+  - Khó đạt scale + reliability như CloudFront/Cloudflare/Akamai nếu không đầu tư lớn
+
+---
+
+## 6. So sánh nhanh
