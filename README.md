@@ -214,6 +214,30 @@ Kết hợp chuẩn:
 
 ## 8. Lambda@Edge
 
+**Lambda@Edge làm được gì?**
+
+Bạn có thể:
+
+- Sửa request của viewer trước khi CloudFront xử lý:
+
+  - Thêm/bỏ header, cookie, query
+  - Chuyển hướng URL, rewrite path (/ → /index.html, SEO URL,…)
+  - Chặn/bật truy cập theo IP, country, user-agent…
+    
+- Sửa request từ CloudFront đến origin:
+
+  - Thêm auth header (HMAC, token…)
+  - Thay đổi path đến origin
+  - Route đến origin khác theo logic riêng
+    
+- Sửa response từ origin trước khi trả cho viewer:
+
+  - Thêm/bỏ header (CSP, HSTS, caching,…)
+  - Thay đổi nội dung HTML (inject banner, AB test, personalisation đơn giản…)
+    
+- Sửa response cache lại (origin response) trước khi CloudFront lưu vào cache.
+  
+
 Lambda@Edge = chạy Lambda function tại Edge (gần user) để can thiệp:
 
 **4 điểm hook:**
