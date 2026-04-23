@@ -102,3 +102,49 @@ Mỗi Behavior cấu hình:
   - Origin Request Policy (gửi gì xuống origin)
   - Viewer Protocol Policy (HTTP/HTTPS)
   - Allowed methods, compression, Lambda@Edge, v.v.
+---
+
+## 5. Caching trong CloudFront
+
+### 5.1. Cache key
+
+Cache key quyết định: 2 request có dùng chung cache không.
+
+Thành phần:
+
+  - Bắt buộc: Protocol + Host + Path + Method (GET/HEAD)
+  - Tùy chọn (qua Cache Policy):
+    - Query strings
+    - Headers
+    - Cookies
+      
+Nguyên tắc:
+
+  - Càng thêm nhiều (headers/cookies/query) vào key → cache bị “vỡ vụn” → hit ratio giảm.
+  - Static (CSS/JS/ảnh): thường không dùng cookie, ít header, query chỉ khi cần thiết (VD version file).
+    
+### 5.2. TTL (Time To Live)
+
+Đặt trong Cache Policy:
+  - DefaultTTL, MinTTL, MaxTTL
+  - Có thể:
+    - Tôn trọng header origin: Cache-Control, Expires
+    - Hoặc override TTL tại CloudFront.
+      
+Gợi ý:
+
+  - Static: 1h–24h+ (thậm chí 7 ngày nếu dùng tên file có hash).
+  - HTML: 30–120s cho báo điện tử (update nhanh nhưng vẫn cache).
+  - API: TTL=0 hoặc vài giây (micro-caching).
+    
+### 5.3. Caching theo Request Headers
+
+Khi cần phân biệt theo header (ít dùng, phải cẩn thận):
+
+  - Accept-Language: khi cùng 1 URL nhưng nội dung theo ngôn ngữ.
+  - Một số header device (client hints) nếu render khác nhau mobile/desktop.
+    
+KHÔNG nên:
+
+  - Cho toàn bộ User-Agent vào cache key (vỡ cache).
+  - Cho header Authorization vào cache key cho public content (dễ leak & nát cache). → Thường: request có auth thì không cache.
