@@ -279,9 +279,7 @@ Nhược:
 
 ---
 
-## 6. So sánh nhanh
-
-# 6. So Sánh Nhanh
+## 6. So Sánh Nhanh
 
 | Tiêu chí | CloudFront | Cloudflare | Akamai | Nginx DIY CDN |
 |----------|------------|------------|--------|---------------|
