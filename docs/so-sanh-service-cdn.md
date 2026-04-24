@@ -280,3 +280,16 @@ Nhược:
 ---
 
 ## 6. So sánh nhanh
+
+# 6. So Sánh Nhanh
+
+| Tiêu chí | CloudFront | Cloudflare | Akamai | Nginx DIY CDN |
+|----------|------------|------------|--------|---------------|
+| **Loại dịch vụ** | Managed CDN (AWS) | Managed CDN + Security Suite | Managed CDN Enterprise | Tự xây, tự vận hành |
+| **Edge global** | Có (PoP AWS) | Có (mạng riêng Cloudflare) | Có (rất rộng, truyền thống) | Tuỳ bạn triển khai |
+| **Origin phổ biến** | S3, ALB, EC2, API GW | Web server, LB bất kỳ | DC on-prem, cloud, hybrid | Origin riêng (DC, cloud) |
+| **Tích hợp AWS** | Rất sâu | Gián tiếp (qua DNS/proxy) | Gián tiếp | Bạn tự tích hợp |
+| **Bảo mật tích hợp** | AWS WAF, Shield, SigV4, OAC | WAF, DDoS, Bot, Zero Trust | Kona/WAF, DDoS, Bot | Phải thêm giải pháp riêng |
+| **Edge compute** | Lambda@Edge, CF Functions | Cloudflare Workers | Akamai EdgeWorkers (tuỳ plan) | Không native, tự viết app Nginx |
+| **Quản lý / vận hành** | Thấp | Thấp – trung | Trung – cao (tùy tổ chức) | Cao (tự lo hết) |
+| **Use case điển hình** | App/website trên AWS, media | Web global, security, SaaS, startup | Bank, OTT lớn, enterprise phức tạp | Bank/tổ chức cần full control |
